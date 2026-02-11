@@ -1,6 +1,13 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser,
+  users,
+  phaseContext,
+  chatHistory,
+  diagnosticSnapshots,
+  stockSearches,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +96,226 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Phase Context Queries
+ */
+export async function upsertPhaseContext(data: {
+  userId: number;
+  chatId: string;
+  ticker: string;
+  company: string;
+  phase?: string;
+  s?: number;
+  vS?: number;
+  aS?: number;
+  iFund?: number;
+  iMarketGap?: number;
+  iStruct?: number;
+  iVola?: number;
+  signals?: string[];
+  lastPrice?: number;
+  volToday?: number;
+  numTrades?: number;
+  capitalization?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const signalsJson = data.signals ? JSON.stringify(data.signals) : null;
+  const existing = await db
+    .select()
+    .from(phaseContext)
+    .where(eq(phaseContext.chatId, data.chatId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(phaseContext)
+      .set({
+        ticker: data.ticker,
+        company: data.company,
+        phase: data.phase,
+        s: data.s,
+        vS: data.vS,
+        aS: data.aS,
+        iFund: data.iFund,
+        iMarketGap: data.iMarketGap,
+        iStruct: data.iStruct,
+        iVola: data.iVola,
+        signals: signalsJson,
+        lastPrice: data.lastPrice,
+        volToday: data.volToday,
+        numTrades: data.numTrades,
+        capitalization: data.capitalization,
+      })
+      .where(eq(phaseContext.chatId, data.chatId));
+  } else {
+    await db.insert(phaseContext).values({
+      userId: data.userId,
+      chatId: data.chatId,
+      ticker: data.ticker,
+      company: data.company,
+      phase: data.phase,
+      s: data.s,
+      vS: data.vS,
+      aS: data.aS,
+      iFund: data.iFund,
+      iMarketGap: data.iMarketGap,
+      iStruct: data.iStruct,
+      iVola: data.iVola,
+      signals: signalsJson,
+      lastPrice: data.lastPrice,
+      volToday: data.volToday,
+      numTrades: data.numTrades,
+      capitalization: data.capitalization,
+    });
+  }
+}
+
+export async function getPhaseContext(chatId: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(phaseContext)
+    .where(eq(phaseContext.chatId, chatId))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Chat History Queries
+ */
+export async function addChatMessage(data: {
+  userId: number;
+  chatId: string;
+  ticker: string;
+  role: "user" | "assistant";
+  content: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(chatHistory).values(data);
+}
+
+export async function getChatHistory(chatId: string, limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db
+    .select()
+    .from(chatHistory)
+    .where(eq(chatHistory.chatId, chatId))
+    .orderBy((t) => t.createdAt)
+    .limit(limit);
+
+  return result;
+}
+
+/**
+ * Diagnostic Snapshots Queries
+ */
+export async function saveDiagnosticSnapshot(data: {
+  userId: number;
+  ticker: string;
+  company: string;
+  phase?: string;
+  s?: number;
+  vS?: number;
+  aS?: number;
+  iFund?: number;
+  iMarketGap?: number;
+  iStruct?: number;
+  iVola?: number;
+  signals?: string[];
+  lastPrice?: number;
+  volToday?: number;
+  numTrades?: number;
+  capitalization?: number;
+  newsContext?: Record<string, unknown>;
+  aiInterpretation?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const signalsJson = data.signals ? JSON.stringify(data.signals) : null;
+  const newsContextJson = data.newsContext
+    ? JSON.stringify(data.newsContext)
+    : null;
+
+  await db.insert(diagnosticSnapshots).values({
+    userId: data.userId,
+    ticker: data.ticker,
+    company: data.company,
+    phase: data.phase,
+    s: data.s,
+    vS: data.vS,
+    aS: data.aS,
+    iFund: data.iFund,
+    iMarketGap: data.iMarketGap,
+    iStruct: data.iStruct,
+    iVola: data.iVola,
+    signals: signalsJson,
+    lastPrice: data.lastPrice,
+    volToday: data.volToday,
+    numTrades: data.numTrades,
+    capitalization: data.capitalization,
+    newsContext: newsContextJson,
+    aiInterpretation: data.aiInterpretation,
+  });
+}
+
+export async function getDiagnosticHistory(
+  userId: number,
+  ticker: string,
+  limit: number = 10
+) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db
+    .select()
+    .from(diagnosticSnapshots)
+    .where(
+      and(
+        eq(diagnosticSnapshots.userId, userId),
+        eq(diagnosticSnapshots.ticker, ticker)
+      )
+    )
+    .orderBy((t) => t.createdAt)
+    .limit(limit);
+
+  return result;
+}
+
+/**
+ * Stock Searches Queries
+ */
+export async function recordStockSearch(data: {
+  userId: number;
+  query: string;
+  ticker?: string;
+  company?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(stockSearches).values(data);
+}
+
+export async function getSearchHistory(userId: number, limit: number = 10) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const result = await db
+    .select()
+    .from(stockSearches)
+    .where(eq(stockSearches.userId, userId))
+    .orderBy((t) => t.createdAt)
+    .limit(limit);
+
+  return result;
+}
