@@ -1,42 +1,41 @@
 # Phase Diagnostic Service - TODO
 
-## Database & Schema
-- [x] Create phase_context table for storing diagnostic results
-- [x] Create chat_history table for conversation persistence
-- [x] Create stock_searches table for tracking user searches
-- [x] Create diagnostic_snapshots table for historical data
+## Architecture: Web UI + n8n Backend
 
-## Backend Services
-- [x] Implement MOEX API client (search, market data, history)
-- [x] Implement Smart-lab financial data scraper
-- [x] Implement phase diagnostic calculation engine (S-index, vS, aS)
-- [x] Implement index calculators (IFund, IMarketGap, IStruct, IVola)
-- [x] Implement weak signals detection logic
-- [x] Implement rhetoric pressure computation for news sentiment
-- [x] Integrate OpenAI LLM for AI agent interpretation (Russian language)
-- [x] Implement memory buffer for chat context persistence
-- [ ] Create webhook endpoint for n8n workflow trigger
+### Backend (Proxy to n8n)
+- [ ] Create n8n proxy service that forwards requests to n8n webhook
+- [ ] Handle request/response transformation
+- [ ] Implement error handling and logging
+- [ ] Cache results in database for history
 
-## Frontend UI
-- [x] Design clean, functional layout for financial data
-- [x] Implement stock search interface (company name/ticker)
-- [x] Build results dashboard with company info and phase classification
-- [x] Create visualization components for indices and charts
-- [x] Implement weak signals display
-- [x] Build chat interface for AI agent interaction
-- [ ] Add historical data view and trend analysis
+### Frontend UI
+- [ ] Create beautiful search interface (company name/ticker)
+- [ ] Build results dashboard with:
+  - [ ] Company info (name, ticker, price)
+  - [ ] Phase classification with visual indicator
+  - [ ] Indices display (S, vS, aS, IFund, IMarketGap, IStruct, IVola)
+  - [ ] Charts for indices and dynamics
+  - [ ] Weak signals display
+  - [ ] News sentiment analysis
+- [ ] Build chat interface for AI agent interaction
+- [ ] Implement message history in UI
+- [ ] Add loading states and error handling
 
-## Integration & Testing
-- [ ] Set up n8n workflow connection via webhook
-- [ ] Test MOEX API integration
-- [ ] Test Smart-lab data scraping
-- [x] Test phase calculation accuracy (vitest)
-- [ ] Test AI agent responses in Russian
-- [ ] Test database persistence and chat history
-- [ ] End-to-end workflow testing
+### Integration
+- [ ] Test n8n webhook connection
+- [ ] Verify request/response format
+- [ ] Test search functionality
+- [ ] Test analysis functionality
+- [ ] Test AI chat functionality
 
-## Deployment & Optimization
-- [ ] Optimize API response times
-- [ ] Add error handling and user feedback
-- [ ] Performance testing with multiple concurrent requests
-- [ ] Final deployment and monitoring setup
+### Styling & UX
+- [ ] Clean, modern design for financial data
+- [ ] Responsive layout (mobile, tablet, desktop)
+- [ ] Dark theme with good contrast
+- [ ] Smooth animations and transitions
+- [ ] Loading spinners and skeleton screens
+
+### Deployment
+- [ ] Final testing
+- [ ] Performance optimization
+- [ ] Error messages and user feedback
