@@ -1,282 +1,284 @@
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { parseResponse, hasStructuredData, type ParsedResponse } from "@/lib/responseParser";
+import GaugeChart from "./GaugeChart";
+import PhaseIndicator from "./PhaseIndicator";
+import SignalCard from "./SignalCard";
+import { Streamdown } from "streamdown";
 import {
-  LineChart,
-  Line,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  ResponsiveContainer,
+  Cell,
 } from "recharts";
-
-interface DiagnosticData {
-  ticker: string;
-  company: string;
-  marketData: {
-    ticker: string;
-    lastPrice: number;
-    volToday: number;
-    numTrades: number;
-    capitalization?: number;
-  };
-  diagnostics: {
-    phase: string;
-    s: number;
-    vS: number;
-    aS: number;
-    iFund: number;
-    iMarketGap: number;
-    iStruct: number;
-    iVola: number;
-    signals: string[];
-  };
-  newsData: {
-    news: Array<{
-      title: string;
-      date: string;
-      sentiment: string;
-      text: string;
-    }>;
-    rhetoricalPressure: number;
-  } | null;
-}
+import { Activity, BarChart3, Brain, Shield, TrendingUp } from "lucide-react";
 
 interface Props {
-  data: DiagnosticData;
+  data: any;
 }
 
-const getPhaseColor = (phase: string): string => {
-  switch (phase) {
-    case "Накопление":
-      return "bg-blue-100 text-blue-800";
-    case "Рост":
-      return "bg-green-100 text-green-800";
-    case "Разметка":
-      return "bg-amber-100 text-amber-800";
-    case "Снижение":
-      return "bg-red-100 text-red-800";
-    case "Распределение":
-      return "bg-purple-100 text-purple-800";
-    default:
-      return "bg-slate-100 text-slate-800";
-  }
+const INDEX_COLORS: Record<string, string> = {
+  IFund: "#4ade80",
+  IMarketGap: "#60a5fa",
+  IStruct: "#c084fc",
+  IVola: "#fbbf24",
 };
 
-const getPhaseDescription = (phase: string): string => {
-  switch (phase) {
-    case "Накопление":
-      return "Фаза накопления - умные деньги входят в позицию";
-    case "Рост":
-      return "Фаза роста - восходящий тренд с положительной динамикой";
-    case "Разметка":
-      return "Фаза разметки - цена достигает пиков, готовится к коррекции";
-    case "Снижение":
-      return "Фаза снижения - нисходящий тренд с отрицательной динамикой";
-    case "Распределение":
-      return "Фаза распределения - умные деньги выходят из позиции";
-    default:
-      return "Неопределённая фаза";
-  }
+const INDEX_LABELS: Record<string, string> = {
+  IFund: "Фундаментальный",
+  IMarketGap: "Рыночный разрыв",
+  IStruct: "Структурный",
+  IVola: "Волатильность",
 };
 
 export default function ResultsDashboard({ data }: Props) {
-  const { diagnostics, marketData, newsData } = data;
+  // Parse the response - could be text from n8n or structured data
+  const message = typeof data === "string"
+    ? data
+    : data?.message || data?.data?.message || data?.data || JSON.stringify(data);
 
-  // Prepare data for charts
-  const indexData = [
-    { name: "S-индекс", value: diagnostics.s, max: 100 },
-    { name: "IFund", value: diagnostics.iFund, max: 100 },
-    { name: "IMarketGap", value: diagnostics.iMarketGap, max: 100 },
-    { name: "IStruct", value: diagnostics.iStruct, max: 100 },
-    { name: "IVola", value: diagnostics.iVola, max: 100 },
-  ];
+  const textContent = typeof message === "string" ? message : JSON.stringify(message);
+  const parsed: ParsedResponse = parseResponse(textContent);
+  const hasData = hasStructuredData(parsed);
 
-  const dynamicsData = [
-    { name: "S", value: diagnostics.s },
-    { name: "vS", value: diagnostics.vS },
-    { name: "aS", value: diagnostics.aS },
-  ];
+  // Prepare radar chart data
+  const radarData = parsed.indices
+    ? [
+        { subject: "IFund", value: parsed.indices.iFund ?? 0, fullMark: 100 },
+        { subject: "IMarketGap", value: parsed.indices.iMarketGap ?? 0, fullMark: 100 },
+        { subject: "IStruct", value: parsed.indices.iStruct ?? 0, fullMark: 100 },
+        { subject: "IVola", value: parsed.indices.iVola ?? 0, fullMark: 100 },
+      ]
+    : [];
 
-  const formatPrice = (kopecks: number) => {
-    return (kopecks / 100).toFixed(2);
-  };
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000000) {
-      return (num / 1000000000).toFixed(1) + "B";
-    }
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "K";
-    }
-    return num.toString();
-  };
+  // Prepare bar chart data
+  const barData = parsed.indices
+    ? Object.entries(parsed.indices)
+        .filter(([, v]) => v !== undefined)
+        .map(([key, value]) => ({
+          name: key,
+          value: value ?? 0,
+          label: INDEX_LABELS[key] || key,
+        }))
+    : [];
 
   return (
-    <div className="space-y-6">
-      {/* Phase Card */}
-      <Card className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 border-2">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-slate-900">Фазовая диагностика</h2>
-          <Badge className={`text-lg px-4 py-2 ${getPhaseColor(diagnostics.phase)}`}>
-            {diagnostics.phase}
-          </Badge>
-        </div>
-        <p className="text-slate-600 mb-4">
-          {getPhaseDescription(diagnostics.phase)}
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-slate-600">S-индекс (основной показатель)</p>
-            <p className="text-3xl font-bold text-slate-900">{diagnostics.s}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600">Динамика (vS)</p>
-            <p className={`text-3xl font-bold ${diagnostics.vS > 0 ? "text-green-600" : "text-red-600"}`}>
-              {diagnostics.vS > 0 ? "+" : ""}{diagnostics.vS}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Market Data Card */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Рыночные данные</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-slate-600">Текущая цена</p>
-            <p className="text-2xl font-bold text-slate-900">
-              ₽{formatPrice(marketData.lastPrice)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600">Объём торговли</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {formatNumber(marketData.volToday)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-600">Сделок</p>
-            <p className="text-2xl font-bold text-slate-900">
-              {formatNumber(marketData.numTrades)}
-            </p>
-          </div>
-          {marketData.capitalization && (
-            <div>
-              <p className="text-sm text-slate-600">Капитализация</p>
-              <p className="text-2xl font-bold text-slate-900">
-                ₽{formatNumber(marketData.capitalization)}
-              </p>
+    <div className="space-y-4">
+      {/* Company header if available */}
+      {(parsed.company || parsed.ticker) && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-primary" />
             </div>
-          )}
+            <div>
+              {parsed.company && (
+                <h2 className="text-lg font-bold text-foreground">{parsed.company}</h2>
+              )}
+              {parsed.ticker && (
+                <span className="text-sm font-mono text-muted-foreground">{parsed.ticker}</span>
+              )}
+            </div>
+          </div>
         </div>
-      </Card>
-
-      {/* Indices Chart */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Индексы</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={indexData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="value" fill="#3b82f6" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* Dynamics Chart */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Динамика (S, vS, aS)</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={dynamicsData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="value" fill="#8b5cf6" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* Weak Signals */}
-      {diagnostics.signals.length > 0 && (
-        <Card className="p-6 border-amber-200 bg-amber-50">
-          <h3 className="text-lg font-semibold text-amber-900 mb-4">⚠️ Слабые сигналы</h3>
-          <ul className="space-y-2">
-            {diagnostics.signals.map((signal, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-amber-800">
-                <span className="text-amber-600 mt-1">•</span>
-                <span>{signal}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
       )}
 
-      {/* News Sentiment */}
-      {newsData && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Новостной фон</h3>
-          <div className="mb-4">
-            <p className="text-sm text-slate-600">Риторическое давление</p>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex-1 bg-slate-200 rounded-full h-2">
+      {/* Phase Indicator */}
+      {hasData && parsed.phase && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Фазовая диагностика
+            </h3>
+          </div>
+          <PhaseIndicator
+            phase={parsed.phase}
+            sIndex={parsed.sIndex ?? 0}
+            velocity={parsed.velocity ?? 0}
+            acceleration={parsed.acceleration ?? 0}
+          />
+        </div>
+      )}
+
+      {/* Indices Gauges */}
+      {barData.length > 0 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Индексы
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {barData.map((item) => (
+              <GaugeChart
+                key={item.name}
+                value={item.value}
+                max={100}
+                min={0}
+                label={item.name}
+                sublabel={item.label}
+                color={INDEX_COLORS[item.name] || "oklch(0.68 0.16 250)"}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Radar Chart */}
+      {radarData.length >= 3 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Профиль индексов
+            </h3>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+              <PolarGrid stroke="oklch(0.30 0.02 260)" />
+              <PolarAngleAxis
+                dataKey="subject"
+                tick={{ fill: "oklch(0.70 0.01 260)", fontSize: 12 }}
+              />
+              <PolarRadiusAxis
+                angle={30}
+                domain={[0, 100]}
+                tick={{ fill: "oklch(0.50 0.01 260)", fontSize: 10 }}
+              />
+              <Radar
+                name="Индексы"
+                dataKey="value"
+                stroke="oklch(0.68 0.16 250)"
+                fill="oklch(0.68 0.16 250)"
+                fillOpacity={0.2}
+                strokeWidth={2}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Bar Chart for indices */}
+      {barData.length > 0 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Значения индексов
+            </h3>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={barData} barSize={40}>
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.015 260)" />
+              <XAxis
+                dataKey="name"
+                tick={{ fill: "oklch(0.70 0.01 260)", fontSize: 12 }}
+                axisLine={{ stroke: "oklch(0.30 0.02 260)" }}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fill: "oklch(0.50 0.01 260)", fontSize: 11 }}
+                axisLine={{ stroke: "oklch(0.30 0.02 260)" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "oklch(0.17 0.02 260)",
+                  border: "1px solid oklch(0.30 0.02 260)",
+                  borderRadius: "8px",
+                  color: "oklch(0.93 0.005 260)",
+                }}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                {barData.map((entry) => (
+                  <Cell
+                    key={entry.name}
+                    fill={INDEX_COLORS[entry.name] || "#60a5fa"}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Weak Signals */}
+      {parsed.signals && parsed.signals.length > 0 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4" style={{ color: "oklch(0.78 0.16 75)" }} />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Слабые сигналы
+            </h3>
+          </div>
+          <SignalCard signals={parsed.signals} />
+        </div>
+      )}
+
+      {/* Rhetorical Pressure */}
+      {parsed.rhetoricalPressure !== undefined && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Brain className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Риторическое давление
+            </h3>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="h-3 rounded-full bg-secondary overflow-hidden">
                 <div
-                  className={`h-2 rounded-full ${
-                    newsData.rhetoricalPressure > 0
-                      ? "bg-green-500"
-                      : "bg-red-500"
-                  }`}
+                  className="h-full rounded-full transition-all duration-1000"
                   style={{
-                    width: `${Math.abs(newsData.rhetoricalPressure) * 100}%`,
+                    width: `${Math.min(100, Math.abs(parsed.rhetoricalPressure))}%`,
+                    backgroundColor:
+                      parsed.rhetoricalPressure > 0
+                        ? "oklch(0.72 0.19 155)"
+                        : "oklch(0.65 0.22 25)",
                   }}
                 />
               </div>
-              <span className="text-sm font-semibold text-slate-900">
-                {(newsData.rhetoricalPressure * 100).toFixed(0)}%
-              </span>
+              <div className="flex justify-between mt-1.5">
+                <span className="text-xs text-muted-foreground">Негативное</span>
+                <span className="text-xs text-muted-foreground">Позитивное</span>
+              </div>
+            </div>
+            <div
+              className="text-2xl font-bold font-mono"
+              style={{
+                color:
+                  parsed.rhetoricalPressure > 0
+                    ? "oklch(0.72 0.19 155)"
+                    : "oklch(0.65 0.22 25)",
+              }}
+            >
+              {parsed.rhetoricalPressure > 0 ? "+" : ""}
+              {parsed.rhetoricalPressure.toFixed(1)}
             </div>
           </div>
-          {newsData.news.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-slate-700">Последние новости:</p>
-              {newsData.news.slice(0, 3).map((news, idx) => (
-                <div key={idx} className="p-3 bg-white rounded border border-slate-200">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className="font-medium text-slate-900 text-sm line-clamp-2">
-                      {news.title}
-                    </h4>
-                    <Badge
-                      className={`text-xs whitespace-nowrap ${
-                        news.sentiment === "positive"
-                          ? "bg-green-100 text-green-800"
-                          : news.sentiment === "negative"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-slate-100 text-slate-800"
-                      }`}
-                    >
-                      {news.sentiment === "positive"
-                        ? "Позитив"
-                        : news.sentiment === "negative"
-                          ? "Негатив"
-                          : "Нейтраль"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-slate-500">{news.date}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        </div>
       )}
+
+      {/* AI Text Response */}
+      <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            AI Интерпретация
+          </h3>
+        </div>
+        <div className="prose prose-invert prose-sm max-w-none text-foreground/90 leading-relaxed">
+          <Streamdown>{textContent}</Streamdown>
+        </div>
+      </div>
     </div>
   );
 }
