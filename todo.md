@@ -50,3 +50,7 @@
 - [ ] Final testing
 - [ ] Performance optimization
 - [ ] Error messages and user feedback
+
+## Webhook URL Update
+- [x] Update n8n webhook URL to test endpoint
+- [ ] Test integration with new webhook
