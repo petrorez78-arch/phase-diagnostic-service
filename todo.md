@@ -54,3 +54,20 @@
 ## Webhook URL Update
 - [x] Update n8n webhook URL to test endpoint
 - [ ] Test integration with new webhook
+
+## UX Improvements
+- [x] Add loading skeleton for chat messages during n8n processing
+- [x] Add progress indicator showing estimated time remaining
+- [x] Add typing animation while waiting for n8n response
+
+## Visualization Enhancements
+- [x] Parse n8n text responses to extract structured data
+- [x] Display charts automatically when data is detected
+- [x] Add image support in results (if n8n returns image URLs)
+- [x] Improve ResponseParser to handle more data formats
+
+## Deployment
+- [x] Create deployment guide for self-hosting
+- [x] Document GitHub export process
+- [x] Document environment variables setup
+- [x] Document database migration steps

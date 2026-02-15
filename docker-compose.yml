@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://phase_user:phase_password@db:3306/phase_diagnostic
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-key}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-https://n8ntestplace.ru/webhook-test/064742d3-f4c6-47d1-9d5f-9287ada12460}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - phase-network
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=phase_diagnostic
+      - MYSQL_USER=phase_user
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-phase_password}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - phase-network
+
+volumes:
+  db_data:
+
+networks:
+  phase-network:
+    driver: bridge

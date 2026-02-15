@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import ResultsDashboard from "@/components/ResultsDashboard";
+import LoadingSkeleton, { ProgressBar } from "@/components/LoadingSkeleton";
 import { Streamdown } from "streamdown";
 import { useLocation } from "wouter";
 
@@ -29,6 +30,7 @@ export default function Diagnostics() {
   const [chatId] = useState(() => `chat-${Date.now()}`);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +60,7 @@ export default function Diagnostics() {
     setMessages((prev) => [...prev, userMessage]);
     setQuery("");
     setLoading(true);
+    setLoadingStartTime(Date.now());
 
     try {
       const response = await sendMutation.mutateAsync({
@@ -95,6 +98,7 @@ export default function Diagnostics() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
+      setLoadingStartTime(null);
       inputRef.current?.focus();
     }
   };
@@ -229,14 +233,9 @@ export default function Diagnostics() {
               ))}
 
               {loading && (
-                <div className="flex gap-3">
-                  <div className="shrink-0 w-7 h-7 rounded-lg bg-fin-green/15 flex items-center justify-center mt-0.5">
-                    <Bot className="w-3.5 h-3.5" style={{ color: "oklch(0.72 0.19 155)" }} />
-                  </div>
-                  <div className="flex items-center gap-2 py-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">Анализирую...</span>
-                  </div>
+                <div className="space-y-3">
+                  <LoadingSkeleton />
+                  <ProgressBar duration={25} />
                 </div>
               )}
 

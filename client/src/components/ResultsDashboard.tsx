@@ -267,6 +267,30 @@ export default function ResultsDashboard({ data }: Props) {
         </div>
       )}
 
+      {/* Images */}
+      {parsed.images && parsed.images.length > 0 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Визуализация
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {parsed.images.map((url, idx) => (
+              <div key={idx} className="rounded-lg overflow-hidden border border-border/30">
+                <img
+                  src={url}
+                  alt={`Визуализация ${idx + 1}`}
+                  className="w-full h-auto object-contain bg-secondary/20"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* AI Text Response */}
       <div className="rounded-xl border border-border/50 bg-card p-5">
         <div className="flex items-center gap-2 mb-4">
