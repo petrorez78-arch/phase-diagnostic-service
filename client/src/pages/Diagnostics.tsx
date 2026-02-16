@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import ResultsDashboard from "@/components/ResultsDashboard";
 import LoadingSkeleton, { ProgressBar } from "@/components/LoadingSkeleton";
+import { SearchHistory, addToSearchHistory } from "@/components/SearchHistory";
 import { Streamdown } from "streamdown";
 import { useLocation } from "wouter";
 
@@ -87,6 +88,9 @@ export default function Diagnostics() {
 
       setMessages((prev) => [...prev, assistantMessage]);
       setSelectedMessage(assistantMessage.id);
+      
+      // Add to search history
+      addToSearchHistory(userMessage.content);
     } catch (error) {
       const errorMessage: Message = {
         id: `msg-${Date.now()}-err`,
@@ -159,7 +163,7 @@ export default function Diagnostics() {
                     Введите тикер компании (например, GAZP) или задайте вопрос AI-агенту
                   </p>
                   {/* Quick actions */}
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="flex flex-wrap justify-center gap-2 mb-6">
                     {quickActions.map((action) => (
                       <button
                         key={action}
@@ -172,6 +176,15 @@ export default function Diagnostics() {
                         {action}
                       </button>
                     ))}
+                  </div>
+                  {/* Search history */}
+                  <div className="max-w-md mx-auto">
+                    <SearchHistory
+                      onSelectSearch={(searchQuery) => {
+                        setQuery(searchQuery);
+                        inputRef.current?.focus();
+                      }}
+                    />
                   </div>
                 </div>
               )}

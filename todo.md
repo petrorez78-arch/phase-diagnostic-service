@@ -71,3 +71,10 @@
 - [x] Document GitHub export process
 - [x] Document environment variables setup
 - [x] Document database migration steps
+
+## New Features (User Requested)
+- [x] Add search history (last 10 searches) with quick access buttons
+- [x] Add chat scrolling to view previous messages
+- [x] Implement persistent chat memory per user in database
+- [x] Add PDF export functionality with charts and analysis
+- [x] Design and implement enhanced result visualization

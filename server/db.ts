@@ -215,6 +215,40 @@ export async function getChatHistory(chatId: string, limit: number = 20) {
   return result;
 }
 
+export async function getUserChatSessions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Get all chat messages for user, then group by chatId in JavaScript
+  const messages = await db
+    .select()
+    .from(chatHistory)
+    .where(eq(chatHistory.userId, userId))
+    .orderBy(chatHistory.createdAt);
+
+  // Group by chatId and get the most recent message for each
+  const sessionsMap = new Map<string, typeof messages[0]>();
+  for (const msg of messages) {
+    if (!sessionsMap.has(msg.chatId) || 
+        (sessionsMap.get(msg.chatId)!.createdAt < msg.createdAt)) {
+      sessionsMap.set(msg.chatId, msg);
+    }
+  }
+
+  // Convert to array and sort by most recent
+  const sessions = Array.from(sessionsMap.values())
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 20)
+    .map(msg => ({
+      chatId: msg.chatId,
+      ticker: msg.ticker,
+      lastMessage: msg.content,
+      lastMessageTime: msg.createdAt,
+    }));
+
+  return sessions;
+}
+
 /**
  * Diagnostic Snapshots Queries
  */

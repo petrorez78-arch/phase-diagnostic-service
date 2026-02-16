@@ -1,7 +1,10 @@
-import { parseResponse, hasStructuredData, type ParsedResponse } from "@/lib/responseParser";
+import { parseResponse, hasStructuredData, ParsedResponse } from "@/lib/responseParser";
 import GaugeChart from "./GaugeChart";
 import PhaseIndicator from "./PhaseIndicator";
 import SignalCard from "./SignalCard";
+import MetricCard from "./MetricCard";
+import TrendIndicator from "./TrendIndicator";
+import IndexHeatmap from "./IndexHeatmap";
 import { Streamdown } from "streamdown";
 import {
   RadarChart,
@@ -18,7 +21,10 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { Activity, BarChart3, Brain, Shield, TrendingUp } from "lucide-react";
+import { Activity, BarChart3, Brain, Download, Shield, TrendingUp, Zap, Target, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportToPDF } from "@/lib/pdfExport";
+import { useRef } from "react";
 
 interface Props {
   data: any;
@@ -39,6 +45,9 @@ const INDEX_LABELS: Record<string, string> = {
 };
 
 export default function ResultsDashboard({ data }: Props) {
+  const radarChartRef = useRef<HTMLDivElement>(null);
+  const barChartRef = useRef<HTMLDivElement>(null);
+
   // Parse the response - could be text from n8n or structured data
   const message = typeof data === "string"
     ? data
@@ -47,6 +56,25 @@ export default function ResultsDashboard({ data }: Props) {
   const textContent = typeof message === "string" ? message : JSON.stringify(message);
   const parsed: ParsedResponse = parseResponse(textContent);
   const hasData = hasStructuredData(parsed);
+
+  const handleExportPDF = async () => {
+    const chartElements: HTMLElement[] = [];
+    if (radarChartRef.current) chartElements.push(radarChartRef.current);
+    if (barChartRef.current) chartElements.push(barChartRef.current);
+
+    await exportToPDF(
+      {
+        company: parsed.company,
+        ticker: parsed.ticker,
+        phase: parsed.phase,
+        indices: parsed.indices,
+        signals: parsed.signals,
+        aiInterpretation: textContent,
+        timestamp: new Date(),
+      },
+      chartElements
+    );
+  };
 
   // Prepare radar chart data
   const radarData = parsed.indices
@@ -71,6 +99,20 @@ export default function ResultsDashboard({ data }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Export button */}
+      {hasData && (
+        <div className="flex justify-end">
+          <Button
+            onClick={handleExportPDF}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Экспорт в PDF
+          </Button>
+        </div>
+      )}
       {/* Company header if available */}
       {(parsed.company || parsed.ticker) && (
         <div className="rounded-xl border border-border/50 bg-card p-5">
@@ -87,6 +129,53 @@ export default function ResultsDashboard({ data }: Props) {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Key Metrics Cards */}
+      {hasData && (parsed.sIndex !== undefined || parsed.velocity !== undefined || parsed.acceleration !== undefined) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {parsed.sIndex !== undefined && (
+            <MetricCard
+              icon={Target}
+              label="S-индекс"
+              value={parsed.sIndex.toFixed(2)}
+              color="oklch(0.68 0.16 250)"
+            />
+          )}
+          {parsed.velocity !== undefined && (
+            <MetricCard
+              icon={Zap}
+              label="Скорость (vS)"
+              value={parsed.velocity.toFixed(2)}
+              trend={parsed.velocity > 0 ? "up" : parsed.velocity < 0 ? "down" : "neutral"}
+              trendValue={Math.abs(parsed.velocity).toFixed(2)}
+              color="oklch(0.72 0.19 155)"
+            />
+          )}
+          {parsed.acceleration !== undefined && (
+            <MetricCard
+              icon={AlertTriangle}
+              label="Ускорение (aS)"
+              value={parsed.acceleration.toFixed(2)}
+              trend={parsed.acceleration > 0 ? "up" : parsed.acceleration < 0 ? "down" : "neutral"}
+              trendValue={Math.abs(parsed.acceleration).toFixed(2)}
+              color="oklch(0.75 0.18 85)"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Index Heatmap */}
+      {parsed.indices && Object.keys(parsed.indices).length > 0 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <Shield className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Анализ рисков
+            </h3>
+          </div>
+          <IndexHeatmap indices={parsed.indices} />
         </div>
       )}
 
@@ -135,7 +224,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Radar Chart */}
       {radarData.length >= 3 && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div ref={radarChartRef} className="rounded-xl border border-border/50 bg-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -169,7 +258,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Bar Chart for indices */}
       {barData.length > 0 && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div ref={barChartRef} className="rounded-xl border border-border/50 bg-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
