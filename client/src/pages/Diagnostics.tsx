@@ -285,7 +285,7 @@ export default function Diagnostics() {
 
         {/* Results panel */}
         <div className="hidden lg:flex flex-1 flex-col overflow-hidden">
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="p-6 max-w-3xl mx-auto">
               {selectedAssistantMessage ? (
                 <ResultsDashboard data={selectedAssistantMessage.content} />
@@ -304,7 +304,7 @@ export default function Diagnostics() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
     </div>

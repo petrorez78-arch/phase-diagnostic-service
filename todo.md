@@ -78,3 +78,6 @@
 - [x] Implement persistent chat memory per user in database
 - [x] Add PDF export functionality with charts and analysis
 - [x] Design and implement enhanced result visualization
+
+## Scrolling Fix
+- [x] Fix results panel scrolling to allow viewing all content
