@@ -17,7 +17,7 @@ import LoadingSkeleton, { ProgressBar } from "@/components/LoadingSkeleton";
 import { SearchHistory, addToSearchHistory } from "@/components/SearchHistory";
 import { Streamdown } from "streamdown";
 import { useLocation } from "wouter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 interface Message {
   id: string;
@@ -291,8 +291,8 @@ export default function Diagnostics() {
           </div>
         </div>
 
-        {/* Results panel - desktop */}
-        <div className="hidden lg:flex flex-1 flex-col overflow-hidden">
+        {/* Results panel */}
+        <div className="flex-1 flex-col overflow-hidden hidden lg:flex">
           <div className="flex-1 overflow-y-auto">
             <div className="p-6 max-w-3xl mx-auto">
               {selectedAssistantMessage ? (
@@ -316,17 +316,7 @@ export default function Diagnostics() {
         </div>
       </div>
 
-      {/* Mobile results modal */}
-      <Dialog open={!!selectedMessage && !!selectedAssistantMessage} onOpenChange={(open) => !open && setSelectedMessage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto lg:hidden">
-          <DialogHeader>
-            <DialogTitle>Результаты анализа</DialogTitle>
-          </DialogHeader>
-          {selectedAssistantMessage && (
-            <ResultsDashboard data={selectedAssistantMessage.content} />
-          )}
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

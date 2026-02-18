@@ -89,3 +89,8 @@
 - [x] Add animated and interactive visualization for calculations
 - [x] Add timeline visualization for phase history
 - [x] Add comparative charts (current vs average values)
+
+## Bug Fixes (User Reported)
+- [x] Fix results panel scrolling (broken after mobile modal addition)
+- [x] Remove screen darkening effect
+- [x] Ensure all charts and visualizations display correctly
