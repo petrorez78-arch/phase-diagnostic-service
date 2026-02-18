@@ -8,6 +8,7 @@ const N8N_WEBHOOK_URL = "https://n8ntestplace.ru/webhook-test/064742d3-f4c6-47d1
 export interface N8NRequest {
   message: string;
   chatId?: string;
+  history?: Array<{ role: string; content: string }>;
 }
 
 export interface N8NResponse {
@@ -34,6 +35,7 @@ export async function sendToN8N(request: N8NRequest): Promise<N8NResponse> {
         message: request.message,
         chatId: request.chatId || `chat-${Date.now()}`,
         timestamp: new Date().toISOString(),
+        history: request.history || [],
       }),
     });
 

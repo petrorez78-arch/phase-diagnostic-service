@@ -81,3 +81,11 @@
 
 ## Scrolling Fix
 - [x] Fix results panel scrolling to allow viewing all content
+
+## User Requested Improvements (v3)
+- [x] Fix PDF export to work with text-only n8n responses
+- [x] Send chat history to n8n for context-aware AI responses
+- [x] Implement mobile responsive design (chat fullscreen, results in modal)
+- [x] Add animated and interactive visualization for calculations
+- [x] Add timeline visualization for phase history
+- [x] Add comparative charts (current vs average values)

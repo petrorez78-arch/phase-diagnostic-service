@@ -17,10 +17,12 @@ interface ExportData {
   signals?: string[];
   aiInterpretation?: string;
   timestamp?: Date;
+  rawText?: string; // For text-only responses
 }
 
 /**
  * Export diagnostic results to PDF
+ * Works with both structured data and plain text responses
  */
 export async function exportToPDF(data: ExportData, chartElements?: HTMLElement[]) {
   const pdf = new jsPDF("p", "mm", "a4");
@@ -45,80 +47,80 @@ export async function exportToPDF(data: ExportData, chartElements?: HTMLElement[
   }
 
   // Timestamp
-  if (data.timestamp) {
-    pdf.setFontSize(10);
-    pdf.setTextColor(100);
-    pdf.text(
-      `Дата анализа: ${data.timestamp.toLocaleString("ru-RU")}`,
-      margin,
-      yPosition
-    );
-    yPosition += 10;
-  }
-
+  pdf.setFontSize(10);
+  pdf.setTextColor(100);
+  pdf.text(
+    `Дата анализа: ${(data.timestamp || new Date()).toLocaleString("ru-RU")}`,
+    margin,
+    yPosition
+  );
+  yPosition += 10;
   pdf.setTextColor(0);
 
-  // Phase
-  if (data.phase) {
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Фаза:", margin, yPosition);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(data.phase, margin + 20, yPosition);
-    yPosition += 8;
-  }
+  // If we have structured data, display it
+  if (data.phase || data.indices || data.signals) {
+    // Phase
+    if (data.phase) {
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Фаза:", margin, yPosition);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(data.phase, margin + 20, yPosition);
+      yPosition += 8;
+    }
 
-  // Indices
-  if (data.indices) {
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Индексы:", margin, yPosition);
-    yPosition += 7;
+    // Indices
+    if (data.indices) {
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Индексы:", margin, yPosition);
+      yPosition += 7;
 
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    const indices = [
-      { label: "S-индекс:", value: data.indices.s },
-      { label: "Скорость (vS):", value: data.indices.vS },
-      { label: "Ускорение (aS):", value: data.indices.aS },
-      { label: "IFund:", value: data.indices.iFund },
-      { label: "IMarketGap:", value: data.indices.iMarketGap },
-      { label: "IStruct:", value: data.indices.iStruct },
-      { label: "IVola:", value: data.indices.iVola },
-    ];
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const indices = [
+        { label: "S-индекс:", value: data.indices.s },
+        { label: "Скорость (vS):", value: data.indices.vS },
+        { label: "Ускорение (aS):", value: data.indices.aS },
+        { label: "IFund:", value: data.indices.iFund },
+        { label: "IMarketGap:", value: data.indices.iMarketGap },
+        { label: "IStruct:", value: data.indices.iStruct },
+        { label: "IVola:", value: data.indices.iVola },
+      ];
 
-    indices.forEach((index) => {
-      if (index.value !== undefined) {
-        pdf.text(`${index.label} ${index.value}`, margin + 5, yPosition);
-        yPosition += 5;
-      }
-    });
-
-    yPosition += 5;
-  }
-
-  // Weak signals
-  if (data.signals && data.signals.length > 0) {
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Слабые сигналы:", margin, yPosition);
-    yPosition += 7;
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    data.signals.forEach((signal) => {
-      const lines = pdf.splitTextToSize(`• ${signal}`, pageWidth - 2 * margin);
-      lines.forEach((line: string) => {
-        if (yPosition > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
+      indices.forEach((index) => {
+        if (index.value !== undefined) {
+          pdf.text(`${index.label} ${index.value.toFixed(2)}`, margin + 5, yPosition);
+          yPosition += 5;
         }
-        pdf.text(line, margin + 5, yPosition);
-        yPosition += 5;
       });
-    });
 
-    yPosition += 5;
+      yPosition += 5;
+    }
+
+    // Weak signals
+    if (data.signals && data.signals.length > 0) {
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Слабые сигналы:", margin, yPosition);
+      yPosition += 7;
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      data.signals.forEach((signal) => {
+        const lines = pdf.splitTextToSize(`• ${signal}`, pageWidth - 2 * margin);
+        lines.forEach((line: string) => {
+          if (yPosition > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.text(line, margin + 5, yPosition);
+          yPosition += 5;
+        });
+      });
+
+      yPosition += 5;
+    }
   }
 
   // Add charts as images
@@ -147,8 +149,9 @@ export async function exportToPDF(data: ExportData, chartElements?: HTMLElement[
     }
   }
 
-  // AI interpretation
-  if (data.aiInterpretation) {
+  // AI interpretation (or raw text if no structured data)
+  const textContent = data.aiInterpretation || data.rawText;
+  if (textContent) {
     if (yPosition > pageHeight - 50) {
       pdf.addPage();
       yPosition = margin;
@@ -156,23 +159,25 @@ export async function exportToPDF(data: ExportData, chartElements?: HTMLElement[
 
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
-    pdf.text("AI-интерпретация:", margin, yPosition);
+    pdf.text(data.aiInterpretation ? "AI-интерпретация:" : "Анализ:", margin, yPosition);
     yPosition += 7;
 
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
-    const lines = pdf.splitTextToSize(
-      data.aiInterpretation,
-      pageWidth - 2 * margin
-    );
-
-    lines.forEach((line: string) => {
-      if (yPosition > pageHeight - margin) {
-        pdf.addPage();
-        yPosition = margin;
-      }
-      pdf.text(line, margin, yPosition);
-      yPosition += 5;
+    
+    // Split text into paragraphs and lines
+    const paragraphs = textContent.split("\n\n");
+    paragraphs.forEach((paragraph) => {
+      const lines = pdf.splitTextToSize(paragraph.trim(), pageWidth - 2 * margin);
+      lines.forEach((line: string) => {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 3; // Extra space between paragraphs
     });
   }
 

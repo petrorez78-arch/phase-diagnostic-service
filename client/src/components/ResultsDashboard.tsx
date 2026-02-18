@@ -5,6 +5,8 @@ import SignalCard from "./SignalCard";
 import MetricCard from "./MetricCard";
 import TrendIndicator from "./TrendIndicator";
 import IndexHeatmap from "./IndexHeatmap";
+import PhaseTimeline from "./PhaseTimeline";
+import ComparisonChart from "./ComparisonChart";
 import { Streamdown } from "streamdown";
 import {
   RadarChart,
@@ -21,7 +23,7 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { Activity, BarChart3, Brain, Download, Shield, TrendingUp, Zap, Target, AlertTriangle } from "lucide-react";
+import { Activity, BarChart3, Brain, Download, Shield, TrendingUp, Zap, Target, AlertTriangle, Clock, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportToPDF } from "@/lib/pdfExport";
 import { useRef } from "react";
@@ -69,7 +71,8 @@ export default function ResultsDashboard({ data }: Props) {
         phase: parsed.phase,
         indices: parsed.indices,
         signals: parsed.signals,
-        aiInterpretation: textContent,
+        aiInterpretation: hasData ? textContent : undefined,
+        rawText: hasData ? undefined : textContent,
         timestamp: new Date(),
       },
       chartElements
@@ -115,7 +118,7 @@ export default function ResultsDashboard({ data }: Props) {
       )}
       {/* Company header if available */}
       {(parsed.company || parsed.ticker) && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-primary" />
@@ -134,7 +137,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Key Metrics Cards */}
       {hasData && (parsed.sIndex !== undefined || parsed.velocity !== undefined || parsed.acceleration !== undefined) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {parsed.sIndex !== undefined && (
             <MetricCard
               icon={Target}
@@ -168,7 +171,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Index Heatmap */}
       {parsed.indices && Object.keys(parsed.indices).length > 0 && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-left-4 duration-700">
           <div className="flex items-center gap-2 mb-5">
             <Shield className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -181,7 +184,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Phase Indicator */}
       {hasData && parsed.phase && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-right-4 duration-700">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -199,7 +202,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Indices Gauges */}
       {barData.length > 0 && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in zoom-in-95 duration-800">
           <div className="flex items-center gap-2 mb-5">
             <BarChart3 className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -224,7 +227,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Radar Chart */}
       {radarData.length >= 3 && (
-        <div ref={radarChartRef} className="rounded-xl border border-border/50 bg-card p-5">
+        <div ref={radarChartRef} className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in zoom-in-95 duration-900">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -250,6 +253,9 @@ export default function ResultsDashboard({ data }: Props) {
                 fill="oklch(0.68 0.16 250)"
                 fillOpacity={0.2}
                 strokeWidth={2}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationBegin={0}
               />
             </RadarChart>
           </ResponsiveContainer>
@@ -258,7 +264,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Bar Chart for indices */}
       {barData.length > 0 && (
-        <div ref={barChartRef} className="rounded-xl border border-border/50 bg-card p-5">
+        <div ref={barChartRef} className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -284,9 +290,13 @@ export default function ResultsDashboard({ data }: Props) {
                   border: "1px solid oklch(0.30 0.02 260)",
                   borderRadius: "8px",
                   color: "oklch(0.93 0.005 260)",
+                  padding: "12px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                 }}
+                cursor={{ fill: "oklch(0.25 0.015 260 / 0.5)" }}
+                animationDuration={200}
               />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={1000} animationBegin={100}>
                 {barData.map((entry) => (
                   <Cell
                     key={entry.name}
@@ -299,9 +309,56 @@ export default function ResultsDashboard({ data }: Props) {
         </div>
       )}
 
+      {/* Phase Timeline (mock data for demo) */}
+      {hasData && parsed.phase && (
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-right-4 duration-1000">
+          <div className="flex items-center gap-2 mb-5">
+            <Clock className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              История фаз
+            </h3>
+          </div>
+          <PhaseTimeline
+            history={[
+              {
+                date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+                phase: "Фаза 2",
+                sIndex: parsed.sIndex ? parsed.sIndex - 15 : 35,
+                velocity: -2.5,
+              },
+              {
+                date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+                phase: "Фаза 3",
+                sIndex: parsed.sIndex ? parsed.sIndex - 8 : 42,
+                velocity: 1.2,
+              },
+              {
+                date: new Date().toISOString(),
+                phase: parsed.phase,
+                sIndex: parsed.sIndex ?? 50,
+                velocity: parsed.velocity ?? 0,
+              },
+            ]}
+          />
+        </div>
+      )}
+
+      {/* Comparison Chart */}
+      {parsed.indices && Object.keys(parsed.indices).length > 0 && (
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-left-4 duration-1100">
+          <div className="flex items-center gap-2 mb-5">
+            <Scale className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Сравнение с рынком
+            </h3>
+          </div>
+          <ComparisonChart current={parsed.indices} />
+        </div>
+      )}
+
       {/* Weak Signals */}
       {parsed.signals && parsed.signals.length > 0 && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-left-4 duration-1200">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4" style={{ color: "oklch(0.78 0.16 75)" }} />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -314,7 +371,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Rhetorical Pressure */}
       {parsed.rhetoricalPressure !== undefined && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in zoom-in-95 duration-900">
           <div className="flex items-center gap-2 mb-4">
             <Brain className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -358,7 +415,7 @@ export default function ResultsDashboard({ data }: Props) {
 
       {/* Images */}
       {parsed.images && parsed.images.length > 0 && (
-        <div className="rounded-xl border border-border/50 bg-card p-5">
+        <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -367,11 +424,11 @@ export default function ResultsDashboard({ data }: Props) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {parsed.images.map((url, idx) => (
-              <div key={idx} className="rounded-lg overflow-hidden border border-border/30">
+              <div key={idx} className="rounded-lg overflow-hidden border border-border/30 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 group">
                 <img
                   src={url}
                   alt={`Визуализация ${idx + 1}`}
-                  className="w-full h-auto object-contain bg-secondary/20"
+                  className="w-full h-auto object-contain bg-secondary/20 transition-transform duration-300 group-hover:scale-105"
                   loading="lazy"
                 />
               </div>
@@ -381,7 +438,7 @@ export default function ResultsDashboard({ data }: Props) {
       )}
 
       {/* AI Text Response */}
-      <div className="rounded-xl border border-border/50 bg-card p-5">
+      <div className="rounded-xl border border-border/50 bg-card p-5 animate-in fade-in slide-in-from-bottom-4 duration-1100">
         <div className="flex items-center gap-2 mb-4">
           <Brain className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">

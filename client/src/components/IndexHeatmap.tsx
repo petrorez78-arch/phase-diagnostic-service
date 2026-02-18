@@ -52,7 +52,7 @@ export default function IndexHeatmap({ indices }: Props) {
         return (
           <div
             key={key}
-            className="rounded-lg border border-border/50 p-4 hover:border-primary/30 transition-all"
+            className="rounded-lg border border-border/50 p-4 hover:border-primary/30 hover:shadow-lg transition-all duration-300 hover:scale-105 group"
             style={{
               backgroundColor: `${color}08`,
               borderColor: `${color}30`,
@@ -74,13 +74,13 @@ export default function IndexHeatmap({ indices }: Props) {
               </div>
             </div>
             <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-foreground">{value.toFixed(1)}</span>
+              <span className="text-3xl font-bold text-foreground transition-all duration-500 group-hover:scale-110 inline-block">{value.toFixed(1)}</span>
               <span className="text-sm text-muted-foreground mb-1">/100</span>
             </div>
             {/* Progress bar */}
             <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full rounded-full transition-all duration-1000 ease-out"
                 style={{
                   width: `${value}%`,
                   backgroundColor: color,

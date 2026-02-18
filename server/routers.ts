@@ -68,6 +68,7 @@ export const appRouter = router({
           return {
             message: String(obj.message),
             chatId: String(obj.chatId || `chat-${Date.now()}`),
+            history: Array.isArray(obj.history) ? obj.history : [],
           };
         }
         throw new Error("Invalid input: message is required");
@@ -88,6 +89,7 @@ export const appRouter = router({
           const response = await sendToN8N({
             message: input.message,
             chatId: input.chatId,
+            history: input.history,
           });
 
           if (!response.success) {

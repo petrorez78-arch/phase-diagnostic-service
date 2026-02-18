@@ -30,13 +30,13 @@ export default function MetricCard({
   };
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card p-4 hover:border-primary/30 transition-colors">
+    <div className="rounded-xl border border-border/50 bg-card p-4 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group">
       <div className="flex items-start justify-between mb-3">
         <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
+          className="w-10 h-10 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
           style={{ backgroundColor: `${color}15` }}
         >
-          <Icon className="w-5 h-5" style={{ color }} />
+          <Icon className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" style={{ color }} />
         </div>
         {trend && (
           <span className={`text-sm font-medium ${trendColors[trend]}`}>
@@ -45,7 +45,7 @@ export default function MetricCard({
         )}
       </div>
       <div className="space-y-1">
-        <p className="text-2xl font-bold text-foreground">{value}</p>
+        <p className="text-2xl font-bold text-foreground transition-all duration-500 animate-in fade-in slide-in-from-bottom-2">{value}</p>
         <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
       </div>
     </div>
