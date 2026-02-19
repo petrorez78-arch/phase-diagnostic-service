@@ -64,7 +64,7 @@ export default function GaugeChart({
       {/* Value display */}
       <div className="text-center">
         <div className="text-2xl font-bold font-mono" style={{ color }}>
-          {value.toFixed(1)}
+          {value.toFixed(2)}
         </div>
         <div className="text-xs font-semibold text-foreground/80 mt-0.5">{label}</div>
         {sublabel && (

@@ -35,10 +35,10 @@ const INDEX_LABELS: Record<string, string> = {
 export default function ComparisonChart({ current, average }: Props) {
   // Use market average if not provided
   const defaultAverage = {
-    iFund: 50,
-    iMarketGap: 50,
-    iStruct: 50,
-    iVola: 50,
+    iFund: 0.5,
+    iMarketGap: 0.5,
+    iStruct: 0.5,
+    iVola: 0.5,
   };
 
   const avgValues = average || defaultAverage;
@@ -67,7 +67,7 @@ export default function ComparisonChart({ current, average }: Props) {
             axisLine={{ stroke: "oklch(0.30 0.02 260)" }}
           />
           <YAxis
-            domain={[0, 100]}
+            domain={[0, 1]}
             tick={{ fill: "oklch(0.50 0.01 260)", fontSize: 11 }}
             axisLine={{ stroke: "oklch(0.30 0.02 260)" }}
           />
@@ -115,7 +115,7 @@ export default function ComparisonChart({ current, average }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {data.map((item) => {
           const isPositive = item.difference > 0;
-          const isNeutral = Math.abs(item.difference) < 5;
+          const isNeutral = Math.abs(item.difference) < 0.05;
           const color = isNeutral
             ? "oklch(0.50 0.01 260)"
             : isPositive
@@ -134,7 +134,7 @@ export default function ComparisonChart({ current, average }: Props) {
                   style={{ color }}
                 >
                   {isPositive ? "+" : ""}
-                  {item.difference.toFixed(1)}
+                  {item.difference.toFixed(2)}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {isNeutral ? "≈" : isPositive ? "↑" : "↓"}

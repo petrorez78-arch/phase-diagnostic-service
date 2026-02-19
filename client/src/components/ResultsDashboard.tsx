@@ -82,10 +82,10 @@ export default function ResultsDashboard({ data }: Props) {
   // Prepare radar chart data
   const radarData = parsed.indices
     ? [
-        { subject: "IFund", value: parsed.indices.iFund ?? 0, fullMark: 100 },
-        { subject: "IMarketGap", value: parsed.indices.iMarketGap ?? 0, fullMark: 100 },
-        { subject: "IStruct", value: parsed.indices.iStruct ?? 0, fullMark: 100 },
-        { subject: "IVola", value: parsed.indices.iVola ?? 0, fullMark: 100 },
+        { subject: "IFund", value: parsed.indices.iFund ?? 0, fullMark: 1 },
+        { subject: "IMarketGap", value: parsed.indices.iMarketGap ?? 0, fullMark: 1 },
+        { subject: "IStruct", value: parsed.indices.iStruct ?? 0, fullMark: 1 },
+        { subject: "IVola", value: parsed.indices.iVola ?? 0, fullMark: 1 },
       ]
     : [];
 
@@ -214,7 +214,7 @@ export default function ResultsDashboard({ data }: Props) {
               <GaugeChart
                 key={item.name}
                 value={item.value}
-                max={100}
+                max={1}
                 min={0}
                 label={item.name}
                 sublabel={item.label}
@@ -243,7 +243,7 @@ export default function ResultsDashboard({ data }: Props) {
               />
               <PolarRadiusAxis
                 angle={30}
-                domain={[0, 100]}
+                domain={[0, 1]}
                 tick={{ fill: "oklch(0.50 0.01 260)", fontSize: 10 }}
               />
               <Radar
@@ -280,7 +280,7 @@ export default function ResultsDashboard({ data }: Props) {
                 axisLine={{ stroke: "oklch(0.30 0.02 260)" }}
               />
               <YAxis
-                domain={[0, 100]}
+                domain={[0, 1]}
                 tick={{ fill: "oklch(0.50 0.01 260)", fontSize: 11 }}
                 axisLine={{ stroke: "oklch(0.30 0.02 260)" }}
               />

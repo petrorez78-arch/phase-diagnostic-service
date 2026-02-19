@@ -28,14 +28,14 @@ const INDEX_INFO = {
 
 export default function IndexHeatmap({ indices }: Props) {
   const getColor = (value: number) => {
-    if (value >= 70) return "oklch(0.72 0.19 155)"; // green
-    if (value >= 40) return "oklch(0.75 0.18 85)"; // yellow
+    if (value >= 0.7) return "oklch(0.72 0.19 155)"; // green
+    if (value >= 0.4) return "oklch(0.75 0.18 85)"; // yellow
     return "oklch(0.65 0.25 25)"; // red
   };
 
   const getRiskLevel = (value: number) => {
-    if (value >= 70) return "Низкий";
-    if (value >= 40) return "Средний";
+    if (value >= 0.7) return "Низкий";
+    if (value >= 0.4) return "Средний";
     return "Высокий";
   };
 
@@ -74,15 +74,15 @@ export default function IndexHeatmap({ indices }: Props) {
               </div>
             </div>
             <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-foreground transition-all duration-500 group-hover:scale-110 inline-block">{value.toFixed(1)}</span>
-              <span className="text-sm text-muted-foreground mb-1">/100</span>
+              <span className="text-3xl font-bold text-foreground transition-all duration-500 group-hover:scale-110 inline-block">{value.toFixed(2)}</span>
+              <span className="text-sm text-muted-foreground mb-1">/1.00</span>
             </div>
             {/* Progress bar */}
             <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-1000 ease-out"
                 style={{
-                  width: `${value}%`,
+                  width: `${value * 100}%`,
                   backgroundColor: color,
                 }}
               />

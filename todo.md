@@ -94,3 +94,11 @@
 - [x] Fix results panel scrolling (broken after mobile modal addition)
 - [x] Remove screen darkening effect
 - [x] Ensure all charts and visualizations display correctly
+
+## Scale Adjustment (User Requested)
+- [x] Change all chart scales from 0-100 to 0-1 for correct index display
+- [x] Update GaugeChart component (max from 100 to 1)
+- [x] Update RadarChart domain (from [0, 100] to [0, 1])
+- [x] Update BarChart domain (from [0, 100] to [0, 1])
+- [x] Update ComparisonChart domain (from [0, 100] to [0, 1])
+- [x] Update IndexHeatmap color thresholds (from 70/40 to 0.7/0.4)
