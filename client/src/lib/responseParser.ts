@@ -167,9 +167,13 @@ export function parseResponse(text: string): ParsedResponse {
     }
   }
 
-  if (hasAnyIndex) {
-    result.indices = indices;
-  }
+  // Always set indices with defaults to ensure visualization stability
+  result.indices = {
+    iFund: indices.iFund ?? 0.5,
+    iMarketGap: indices.iMarketGap ?? 0.5,
+    iStruct: indices.iStruct ?? 0.5,
+    iVola: indices.iVola ?? 0.5,
+  };
 
   // Try to extract weak signals (multiple patterns)
   const signalPatterns = [
@@ -200,6 +204,23 @@ export function parseResponse(text: string): ParsedResponse {
       result.rhetoricalPressure = parseFloat(match[1]);
       break;
     }
+  }
+
+  // Set default values for missing critical fields
+  if (!result.sIndex && hasAnyIndex) {
+    result.sIndex = 0.5;
+  }
+  if (!result.velocity && hasAnyIndex) {
+    result.velocity = 0;
+  }
+  if (!result.acceleration && hasAnyIndex) {
+    result.acceleration = 0;
+  }
+  if (!result.phase && hasAnyIndex) {
+    result.phase = "Анализ";
+  }
+  if (!result.signals || result.signals.length === 0) {
+    result.signals = [];
   }
 
   // Determine type based on extracted data

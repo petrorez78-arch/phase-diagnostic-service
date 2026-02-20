@@ -102,3 +102,11 @@
 - [x] Update BarChart domain (from [0, 100] to [0, 1])
 - [x] Update ComparisonChart domain (from [0, 100] to [0, 1])
 - [x] Update IndexHeatmap color thresholds (from 70/40 to 0.7/0.4)
+
+## New Features (User Requested)
+- [x] Stabilize visualization output format (ensure all charts always render)
+- [x] Implement chat history persistence in database
+- [x] Add chat list UI showing all user's previous conversations
+- [x] Add ability to load and continue previous chat sessions
+- [x] Implement follow-up questions feature (ask questions about specific analysis results)
+- [x] Add context awareness for follow-up questions (send previous analysis to n8n)

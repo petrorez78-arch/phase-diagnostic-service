@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { sendToN8N, parseN8NResponse } from "./n8nProxy";
-import { addChatMessage, getChatHistory, getUserChatSessions } from "./db";
+import { addChatMessage, getChatHistory, getUserChatSessions, upsertChatSession, deleteChatSession, getPhaseContext } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -35,6 +35,43 @@ export const appRouter = router({
       })
       .query(async ({ input }) => {
         return await getChatHistory(input.chatId);
+      }),
+
+    // Upsert chat session
+    upsertSession: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null) {
+          const obj = val as any;
+          return {
+            chatId: String(obj.chatId),
+            title: String(obj.title),
+            lastMessage: obj.lastMessage ? String(obj.lastMessage) : undefined,
+          };
+        }
+        throw new Error("Invalid input");
+      })
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user) throw new Error("Unauthorized");
+        await upsertChatSession({
+          userId: ctx.user.id,
+          chatId: input.chatId,
+          title: input.title,
+          lastMessage: input.lastMessage,
+        });
+        return { success: true };
+      }),
+
+    // Delete chat session
+    deleteSession: protectedProcedure
+      .input((val: unknown) => {
+        if (typeof val === "object" && val !== null && "chatId" in val) {
+          return { chatId: String((val as any).chatId) };
+        }
+        throw new Error("Invalid input: chatId is required");
+      })
+      .mutation(async ({ input }) => {
+        await deleteChatSession(input.chatId);
+        return { success: true };
       }),
 
     // Save a chat message
@@ -86,10 +123,28 @@ export const appRouter = router({
             });
           }
 
+          // Load previous phase context for follow-up questions
+          const phaseContext = await getPhaseContext(input.chatId);
+
           const response = await sendToN8N({
             message: input.message,
             chatId: input.chatId,
             history: input.history,
+            phaseContext: phaseContext ? {
+              ticker: phaseContext.ticker,
+              company: phaseContext.company,
+              phase: phaseContext.phase,
+              indices: {
+                s: phaseContext.s,
+                vS: phaseContext.vS,
+                aS: phaseContext.aS,
+                iFund: phaseContext.iFund,
+                iMarketGap: phaseContext.iMarketGap,
+                iStruct: phaseContext.iStruct,
+                iVola: phaseContext.iVola,
+              },
+              signals: phaseContext.signals ? JSON.parse(phaseContext.signals) : [],
+            } : undefined,
           });
 
           if (!response.success) {

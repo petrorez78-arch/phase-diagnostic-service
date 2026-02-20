@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   users,
+  chatSessions,
   phaseContext,
   chatHistory,
   diagnosticSnapshots,
@@ -135,13 +136,13 @@ export async function upsertPhaseContext(data: {
         ticker: data.ticker,
         company: data.company,
         phase: data.phase,
-        s: data.s,
-        vS: data.vS,
-        aS: data.aS,
-        iFund: data.iFund,
-        iMarketGap: data.iMarketGap,
-        iStruct: data.iStruct,
-        iVola: data.iVola,
+        s: data.s?.toString(),
+        vS: data.vS?.toString(),
+        aS: data.aS?.toString(),
+        iFund: data.iFund?.toString(),
+        iMarketGap: data.iMarketGap?.toString(),
+        iStruct: data.iStruct?.toString(),
+        iVola: data.iVola?.toString(),
         signals: signalsJson,
         lastPrice: data.lastPrice,
         volToday: data.volToday,
@@ -156,13 +157,13 @@ export async function upsertPhaseContext(data: {
       ticker: data.ticker,
       company: data.company,
       phase: data.phase,
-      s: data.s,
-      vS: data.vS,
-      aS: data.aS,
-      iFund: data.iFund,
-      iMarketGap: data.iMarketGap,
-      iStruct: data.iStruct,
-      iVola: data.iVola,
+      s: data.s?.toString(),
+      vS: data.vS?.toString(),
+      aS: data.aS?.toString(),
+      iFund: data.iFund?.toString(),
+      iMarketGap: data.iMarketGap?.toString(),
+      iStruct: data.iStruct?.toString(),
+      iVola: data.iVola?.toString(),
       signals: signalsJson,
       lastPrice: data.lastPrice,
       volToday: data.volToday,
@@ -215,39 +216,7 @@ export async function getChatHistory(chatId: string, limit: number = 20) {
   return result;
 }
 
-export async function getUserChatSessions(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
 
-  // Get all chat messages for user, then group by chatId in JavaScript
-  const messages = await db
-    .select()
-    .from(chatHistory)
-    .where(eq(chatHistory.userId, userId))
-    .orderBy(chatHistory.createdAt);
-
-  // Group by chatId and get the most recent message for each
-  const sessionsMap = new Map<string, typeof messages[0]>();
-  for (const msg of messages) {
-    if (!sessionsMap.has(msg.chatId) || 
-        (sessionsMap.get(msg.chatId)!.createdAt < msg.createdAt)) {
-      sessionsMap.set(msg.chatId, msg);
-    }
-  }
-
-  // Convert to array and sort by most recent
-  const sessions = Array.from(sessionsMap.values())
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 20)
-    .map(msg => ({
-      chatId: msg.chatId,
-      ticker: msg.ticker,
-      lastMessage: msg.content,
-      lastMessageTime: msg.createdAt,
-    }));
-
-  return sessions;
-}
 
 /**
  * Diagnostic Snapshots Queries
@@ -285,13 +254,13 @@ export async function saveDiagnosticSnapshot(data: {
     ticker: data.ticker,
     company: data.company,
     phase: data.phase,
-    s: data.s,
-    vS: data.vS,
-    aS: data.aS,
-    iFund: data.iFund,
-    iMarketGap: data.iMarketGap,
-    iStruct: data.iStruct,
-    iVola: data.iVola,
+    s: data.s?.toString(),
+    vS: data.vS?.toString(),
+    aS: data.aS?.toString(),
+    iFund: data.iFund?.toString(),
+    iMarketGap: data.iMarketGap?.toString(),
+    iStruct: data.iStruct?.toString(),
+    iVola: data.iVola?.toString(),
     signals: signalsJson,
     lastPrice: data.lastPrice,
     volToday: data.volToday,
@@ -352,4 +321,65 @@ export async function getSearchHistory(userId: number, limit: number = 10) {
     .limit(limit);
 
   return result;
+}
+
+/**
+ * Chat Sessions Queries
+ */
+export async function upsertChatSession(data: {
+  userId: number;
+  chatId: string;
+  title: string;
+  lastMessage?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(chatSessions)
+    .where(eq(chatSessions.chatId, data.chatId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(chatSessions)
+      .set({
+        title: data.title,
+        lastMessage: data.lastMessage,
+      })
+      .where(eq(chatSessions.chatId, data.chatId));
+  } else {
+    await db.insert(chatSessions).values({
+      userId: data.userId,
+      chatId: data.chatId,
+      title: data.title,
+      lastMessage: data.lastMessage,
+    });
+  }
+}
+
+export async function getUserChatSessions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(chatSessions)
+    .where(eq(chatSessions.userId, userId))
+    .orderBy(chatSessions.updatedAt);
+}
+
+export async function deleteChatSession(chatId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Delete chat session
+  await db.delete(chatSessions).where(eq(chatSessions.chatId, chatId));
+  
+  // Delete associated chat history
+  await db.delete(chatHistory).where(eq(chatHistory.chatId, chatId));
+  
+  // Delete associated phase context
+  await db.delete(phaseContext).where(eq(phaseContext.chatId, chatId));
 }

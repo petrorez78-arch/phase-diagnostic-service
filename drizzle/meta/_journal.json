@@ -15,6 +15,13 @@
       "when": 1770834576980,
       "tag": "0001_slimy_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771507605100,
+      "tag": "0002_cold_the_hood",
+      "breakpoints": true
     }
   ]
 }

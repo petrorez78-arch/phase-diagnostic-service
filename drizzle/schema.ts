@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -26,6 +26,22 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
+ * Chat sessions - stores metadata for each chat conversation
+ */
+export const chatSessions = mysqlTable("chat_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull(),
+  chatId: varchar("chat_id", { length: 64 }).notNull().unique(),
+  title: varchar("title", { length: 255 }).notNull(), // Chat title (e.g., ticker or first query)
+  lastMessage: text("last_message"), // Preview of last message
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = typeof chatSessions.$inferInsert;
+
+/**
  * Phase diagnostic context - stores the latest diagnostic calculation for a stock
  */
 export const phaseContext = mysqlTable("phase_context", {
@@ -35,13 +51,13 @@ export const phaseContext = mysqlTable("phase_context", {
   ticker: varchar("ticker", { length: 20 }).notNull(),
   company: varchar("company", { length: 255 }).notNull(),
   phase: varchar("phase", { length: 50 }), // Phase classification (e.g., "Accumulation", "Markup", etc.)
-  s: int("s"), // S-index value
-  vS: int("vS"), // Velocity of S
-  aS: int("aS"), // Acceleration of S
-  iFund: int("iFund"), // Fundamental index
-  iMarketGap: int("iMarketGap"), // Market gap index
-  iStruct: int("iStruct"), // Structure index
-  iVola: int("iVola"), // Volatility index
+  s: decimal("s", { precision: 5, scale: 2 }), // S-index value (0-1 scale)
+  vS: decimal("vS", { precision: 5, scale: 2 }), // Velocity of S
+  aS: decimal("aS", { precision: 5, scale: 2 }), // Acceleration of S
+  iFund: decimal("iFund", { precision: 5, scale: 2 }), // Fundamental index (0-1 scale)
+  iMarketGap: decimal("iMarketGap", { precision: 5, scale: 2 }), // Market gap index (0-1 scale)
+  iStruct: decimal("iStruct", { precision: 5, scale: 2 }), // Structure index (0-1 scale)
+  iVola: decimal("iVola", { precision: 5, scale: 2 }), // Volatility index (0-1 scale)
   signals: text("signals"), // JSON array of weak signals
   lastPrice: int("last_price"), // Latest price in kopecks
   volToday: int("vol_today"), // Trading volume today
@@ -79,13 +95,13 @@ export const diagnosticSnapshots = mysqlTable("diagnostic_snapshots", {
   ticker: varchar("ticker", { length: 20 }).notNull(),
   company: varchar("company", { length: 255 }).notNull(),
   phase: varchar("phase", { length: 50 }),
-  s: int("s"),
-  vS: int("vS"),
-  aS: int("aS"),
-  iFund: int("iFund"),
-  iMarketGap: int("iMarketGap"),
-  iStruct: int("iStruct"),
-  iVola: int("iVola"),
+  s: decimal("s", { precision: 5, scale: 2 }),
+  vS: decimal("vS", { precision: 5, scale: 2 }),
+  aS: decimal("aS", { precision: 5, scale: 2 }),
+  iFund: decimal("iFund", { precision: 5, scale: 2 }),
+  iMarketGap: decimal("iMarketGap", { precision: 5, scale: 2 }),
+  iStruct: decimal("iStruct", { precision: 5, scale: 2 }),
+  iVola: decimal("iVola", { precision: 5, scale: 2 }),
   signals: text("signals"), // JSON array
   lastPrice: int("last_price"),
   volToday: int("vol_today"),

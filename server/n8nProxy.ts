@@ -9,6 +9,7 @@ export interface N8NRequest {
   message: string;
   chatId?: string;
   history?: Array<{ role: string; content: string }>;
+  phaseContext?: any; // Previous analysis context for follow-up questions
 }
 
 export interface N8NResponse {
@@ -36,6 +37,7 @@ export async function sendToN8N(request: N8NRequest): Promise<N8NResponse> {
         chatId: request.chatId || `chat-${Date.now()}`,
         timestamp: new Date().toISOString(),
         history: request.history || [],
+        phaseContext: request.phaseContext, // Include previous analysis for context
       }),
     });
 

@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import ResultsDashboard from "@/components/ResultsDashboard";
+import ChatSidebar from "@/components/ChatSidebar";
 import LoadingSkeleton, { ProgressBar } from "@/components/LoadingSkeleton";
 import { SearchHistory, addToSearchHistory } from "@/components/SearchHistory";
 import { Streamdown } from "streamdown";
@@ -29,7 +30,7 @@ interface Message {
 
 export default function Diagnostics() {
   const [query, setQuery] = useState("");
-  const [chatId] = useState(() => `chat-${Date.now()}`);
+  const [chatId, setChatId] = useState(() => `chat-${Date.now()}`);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
@@ -39,6 +40,12 @@ export default function Diagnostics() {
   const [, setLocation] = useLocation();
 
   const sendMutation = trpc.diagnostics.send.useMutation();
+  const upsertSessionMutation = trpc.chat.upsertSession.useMutation();
+  const { data: user } = trpc.auth.me.useQuery();
+  const getChatHistoryQuery = trpc.chat.history.useQuery(
+    { chatId },
+    { enabled: false }
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,6 +104,17 @@ export default function Diagnostics() {
       setMessages((prev) => [...prev, assistantMessage]);
       setSelectedMessage(assistantMessage.id);
       
+      // Save chat session
+      if (user) {
+        const firstQuery = messages.length === 1 ? userMessage.content : messages[0]?.content || userMessage.content;
+        const title = firstQuery.substring(0, 50) + (firstQuery.length > 50 ? '...' : '');
+        await upsertSessionMutation.mutateAsync({
+          chatId,
+          title,
+          lastMessage: assistantMessage.content.substring(0, 200),
+        });
+      }
+      
       // Add to search history
       addToSearchHistory(userMessage.content);
     } catch (error) {
@@ -126,8 +144,51 @@ export default function Diagnostics() {
     "ROSN",
   ];
 
+  const handleNewChat = () => {
+    setChatId(`chat-${Date.now()}`);
+    setMessages([]);
+    setSelectedMessage(null);
+  };
+
+  const handleSelectChat = async (selectedChatId: string) => {
+    setChatId(selectedChatId);
+    setMessages([]);
+    setSelectedMessage(null);
+    
+    // Load chat history from database
+    try {
+      const history = await getChatHistoryQuery.refetch();
+      if (history.data) {
+        const loadedMessages: Message[] = history.data.map((msg: any) => ({
+          id: `msg-${msg.id}`,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.createdAt),
+          hasData: msg.role === 'assistant',
+        }));
+        setMessages(loadedMessages);
+        // Select the last assistant message
+        const lastAssistant = loadedMessages.filter(m => m.role === 'assistant').pop();
+        if (lastAssistant) {
+          setSelectedMessage(lastAssistant.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+    }
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+    <div className="h-screen flex bg-background text-foreground overflow-hidden">
+      {/* Chat history sidebar */}
+      <ChatSidebar
+        currentChatId={chatId}
+        onNewChat={handleNewChat}
+        onSelectChat={handleSelectChat}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top bar */}
       <header className="shrink-0 border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 py-2.5">
         <div className="flex items-center justify-between max-w-[1600px] mx-auto">
@@ -315,8 +376,7 @@ export default function Diagnostics() {
           </div>
         </div>
       </div>
-
-
+      </div>
     </div>
   );
 }
