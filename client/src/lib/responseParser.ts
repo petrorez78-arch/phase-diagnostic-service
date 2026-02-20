@@ -167,13 +167,10 @@ export function parseResponse(text: string): ParsedResponse {
     }
   }
 
-  // Always set indices with defaults to ensure visualization stability
-  result.indices = {
-    iFund: indices.iFund ?? 0.5,
-    iMarketGap: indices.iMarketGap ?? 0.5,
-    iStruct: indices.iStruct ?? 0.5,
-    iVola: indices.iVola ?? 0.5,
-  };
+  // Only set indices if at least one was found
+  if (hasAnyIndex) {
+    result.indices = indices;
+  }
 
   // Try to extract weak signals (multiple patterns)
   const signalPatterns = [
@@ -206,22 +203,7 @@ export function parseResponse(text: string): ParsedResponse {
     }
   }
 
-  // Set default values for missing critical fields
-  if (!result.sIndex && hasAnyIndex) {
-    result.sIndex = 0.5;
-  }
-  if (!result.velocity && hasAnyIndex) {
-    result.velocity = 0;
-  }
-  if (!result.acceleration && hasAnyIndex) {
-    result.acceleration = 0;
-  }
-  if (!result.phase && hasAnyIndex) {
-    result.phase = "Анализ";
-  }
-  if (!result.signals || result.signals.length === 0) {
-    result.signals = [];
-  }
+  // Keep original values from n8n, no defaults
 
   // Determine type based on extracted data
   if (result.phase && result.indices) {

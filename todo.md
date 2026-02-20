@@ -110,3 +110,6 @@
 - [x] Add ability to load and continue previous chat sessions
 - [x] Implement follow-up questions feature (ask questions about specific analysis results)
 - [x] Add context awareness for follow-up questions (send previous analysis to n8n)
+
+## Bug Fix (User Reported)
+- [x] Fix parser to use real n8n data instead of always defaulting to 0.5 for indices
