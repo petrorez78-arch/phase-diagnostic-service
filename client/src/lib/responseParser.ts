@@ -28,10 +28,21 @@ export function parseResponse(text: string): ParsedResponse {
     rawText: text,
   };
 
-  // Try to parse as JSON first (n8n may return structured JSON)
+  // First, try to extract JSON from the message field if response is wrapped
+  let contentToAnalyze = text;
+  try {
+    const wrapped = JSON.parse(text);
+    if (wrapped.message) {
+      contentToAnalyze = wrapped.message;
+    }
+  } catch {
+    // Not wrapped, use original text
+  }
+
+  // Try to parse the content as JSON
   let jsonData: any = null;
   try {
-    jsonData = JSON.parse(text);
+    jsonData = JSON.parse(contentToAnalyze);
   } catch {
     // Not JSON, continue with text parsing
   }
@@ -51,45 +62,70 @@ export function parseResponse(text: string): ParsedResponse {
       result.phase = jsonData.Фаза || jsonData.Phase;
     }
 
-    // Extract indices if present
+    // Extract indices from various possible locations
     const indices: any = {};
     let hasAnyJsonIndex = false;
 
-    // Check for direct index fields
-    if (jsonData.IFund !== undefined || jsonData.iFund !== undefined) {
-      indices.iFund = parseFloat(jsonData.IFund || jsonData.iFund);
-      hasAnyJsonIndex = true;
-    }
-    if (jsonData.IMarketGap !== undefined || jsonData.iMarketGap !== undefined) {
-      indices.iMarketGap = parseFloat(jsonData.IMarketGap || jsonData.iMarketGap);
-      hasAnyJsonIndex = true;
-    }
-    if (jsonData.IStruct !== undefined || jsonData.iStruct !== undefined) {
-      indices.iStruct = parseFloat(jsonData.IStruct || jsonData.iStruct);
-      hasAnyJsonIndex = true;
-    }
-    if (jsonData.IVola !== undefined || jsonData.iVola !== undefined) {
-      indices.iVola = parseFloat(jsonData.IVola || jsonData.iVola);
-      hasAnyJsonIndex = true;
+    // Check for "Ключевые показатели" (Key indicators) object
+    const keyIndicators = jsonData["Ключевые показатели"] || jsonData["Key indicators"];
+    if (keyIndicators && typeof keyIndicators === 'object') {
+      // Parse string values like "0.215 — description"
+      if (keyIndicators["IFund (Фундаментальный индекс)"] || keyIndicators.IFund) {
+        const val = extractNumericValue(keyIndicators["IFund (Фундаментальный индекс)"] || keyIndicators.IFund);
+        if (val !== null) {
+          indices.iFund = val;
+          hasAnyJsonIndex = true;
+        }
+      }
+      if (keyIndicators["IMarketGap (Индекс рыночного разрыва)"] || keyIndicators.IMarketGap) {
+        const val = extractNumericValue(keyIndicators["IMarketGap (Индекс рыночного разрыва)"] || keyIndicators.IMarketGap);
+        if (val !== null) {
+          indices.iMarketGap = val;
+          hasAnyJsonIndex = true;
+        }
+      }
+      if (keyIndicators["IStruct (Структурный индекс)"] || keyIndicators.IStruct) {
+        const val = extractNumericValue(keyIndicators["IStruct (Структурный индекс)"] || keyIndicators.IStruct);
+        if (val !== null) {
+          indices.iStruct = val;
+          hasAnyJsonIndex = true;
+        }
+      }
+      if (keyIndicators["IVola (Волатильность)"] || keyIndicators.IVola) {
+        const val = extractNumericValue(keyIndicators["IVola (Волатильность)"] || keyIndicators.IVola);
+        if (val !== null) {
+          indices.iVola = val;
+          hasAnyJsonIndex = true;
+        }
+      }
     }
 
-    // Check for nested Индексы object
-    const indicesObj = jsonData.Индексы || jsonData.Indices || jsonData.indices;
-    if (indicesObj && typeof indicesObj === 'object') {
-      if (indicesObj.IFund !== undefined) {
-        indices.iFund = parseFloat(indicesObj.IFund);
+    // Check for direct index fields
+    if (jsonData.IFund !== undefined || jsonData.iFund !== undefined) {
+      const val = parseFloat(jsonData.IFund || jsonData.iFund);
+      if (!isNaN(val)) {
+        indices.iFund = val;
         hasAnyJsonIndex = true;
       }
-      if (indicesObj.IMarketGap !== undefined) {
-        indices.iMarketGap = parseFloat(indicesObj.IMarketGap);
+    }
+    if (jsonData.IMarketGap !== undefined || jsonData.iMarketGap !== undefined) {
+      const val = parseFloat(jsonData.IMarketGap || jsonData.iMarketGap);
+      if (!isNaN(val)) {
+        indices.iMarketGap = val;
         hasAnyJsonIndex = true;
       }
-      if (indicesObj.IStruct !== undefined) {
-        indices.iStruct = parseFloat(indicesObj.IStruct);
+    }
+    if (jsonData.IStruct !== undefined || jsonData.iStruct !== undefined) {
+      const val = parseFloat(jsonData.IStruct || jsonData.iStruct);
+      if (!isNaN(val)) {
+        indices.iStruct = val;
         hasAnyJsonIndex = true;
       }
-      if (indicesObj.IVola !== undefined) {
-        indices.iVola = parseFloat(indicesObj.IVola);
+    }
+    if (jsonData.IVola !== undefined || jsonData.iVola !== undefined) {
+      const val = parseFloat(jsonData.IVola || jsonData.iVola);
+      if (!isNaN(val)) {
+        indices.iVola = val;
         hasAnyJsonIndex = true;
       }
     }
@@ -100,31 +136,49 @@ export function parseResponse(text: string): ParsedResponse {
 
     // Extract S-index, velocity, acceleration
     if (jsonData.S !== undefined) {
-      result.sIndex = parseFloat(jsonData.S);
+      const val = parseFloat(jsonData.S);
+      if (!isNaN(val)) result.sIndex = val;
     }
+    if (jsonData["S-индекс"] !== undefined) {
+      const val = extractNumericValue(jsonData["S-индекс"]);
+      if (val !== null) result.sIndex = val;
+    }
+
     if (jsonData.vS !== undefined) {
-      result.velocity = parseFloat(jsonData.vS);
+      const val = parseFloat(jsonData.vS);
+      if (!isNaN(val)) result.velocity = val;
     }
+    if (jsonData["ΔS (Изменение S-индекса)"] !== undefined) {
+      const val = extractNumericValue(jsonData["ΔS (Изменение S-индекса)"]);
+      if (val !== null) result.velocity = val;
+    }
+
     if (jsonData.aS !== undefined) {
-      result.acceleration = parseFloat(jsonData.aS);
+      const val = parseFloat(jsonData.aS);
+      if (!isNaN(val)) result.acceleration = val;
+    }
+    if (jsonData["aS (Ускорение изменения S-индекса)"] !== undefined) {
+      const val = extractNumericValue(jsonData["aS (Ускорение изменения S-индекса)"]);
+      if (val !== null) result.acceleration = val;
     }
 
     // Extract weak signals
-    const signalsField = jsonData['Слабые сигналы'] || jsonData['Weak signals'] || jsonData.signals;
+    const signalsField = jsonData["Слабые сигналы"] || jsonData["Weak signals"] || jsonData.signals;
     if (Array.isArray(signalsField)) {
-      result.signals = signalsField.map(s => String(s));
+      result.signals = signalsField.map(s => String(s)).filter(s => s.length > 0);
     } else if (typeof signalsField === 'string') {
       result.signals = [signalsField];
     }
 
     // Extract rhetorical pressure
-    if (jsonData['Риторическое давление'] !== undefined) {
-      result.rhetoricalPressure = parseFloat(jsonData['Риторическое давление']);
+    if (jsonData["Риторическое давление"] !== undefined) {
+      const val = extractNumericValue(jsonData["Риторическое давление"]);
+      if (val !== null) result.rhetoricalPressure = val;
     }
 
     // If we found structured data, mark as analysis
     if (result.phase && (result.indices || hasAnyJsonIndex)) {
-      result.type = 'analysis';
+      result.type = "analysis";
     }
 
     // Return early if we successfully parsed JSON
@@ -135,19 +189,19 @@ export function parseResponse(text: string): ParsedResponse {
 
   // Extract images (URLs ending with image extensions or markdown images)
   const imageUrls: string[] = [];
-  
+
   // Match markdown images: ![alt](url)
-  const mdImageMatches = Array.from(text.matchAll(/!\[.*?\]\((https?:\/\/[^\)]+)\)/g));
+  const mdImageMatches = Array.from(contentToAnalyze.matchAll(/!\[.*?\]\((https?:\/\/[^\)]+)\)/g));
   for (const match of mdImageMatches) {
     imageUrls.push(match[1]);
   }
-  
+
   // Match direct image URLs
-  const urlMatches = Array.from(text.matchAll(/https?:\/\/[^\s<>"]+?\.(?:jpg|jpeg|png|gif|webp|svg)/gi));
+  const urlMatches = Array.from(contentToAnalyze.matchAll(/https?:\/\/[^\s<>"]+?\.(?:jpg|jpeg|png|gif|webp|svg)/gi));
   for (const match of urlMatches) {
     imageUrls.push(match[0]);
   }
-  
+
   if (imageUrls.length > 0) {
     result.images = Array.from(new Set(imageUrls)); // Remove duplicates
   }
@@ -157,9 +211,9 @@ export function parseResponse(text: string): ParsedResponse {
     /(?:Компания|Company|Название):\s*([^\n]+)/i,
     /(?:^|\n)([А-ЯЁ][а-яё\s]+(?:ПАО|АО|ООО)?)\s*\(/m, // Russian company name before ticker
   ];
-  
+
   for (const pattern of companyPatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.company = match[1].trim();
       break;
@@ -168,11 +222,11 @@ export function parseResponse(text: string): ParsedResponse {
 
   const tickerPatterns = [
     /(?:Тикер|Ticker|Код):\s*([A-Z]{4,})/i,
-    /\(([A-Z]{4,})\)/,  // Ticker in parentheses
+    /\(([A-Z]{4,})\)/, // Ticker in parentheses
   ];
-  
+
   for (const pattern of tickerPatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.ticker = match[1].trim();
       break;
@@ -185,9 +239,9 @@ export function parseResponse(text: string): ParsedResponse {
     /(?:Текущая фаза|Current phase):\s*([^\n]+)/i,
     /(?:Фаза развития|Development phase):\s*([^\n]+)/i,
   ];
-  
+
   for (const pattern of phasePatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.phase = match[1].trim();
       break;
@@ -199,9 +253,9 @@ export function parseResponse(text: string): ParsedResponse {
     /S[-\s]?(?:индекс|index):\s*([-\d.]+)/i,
     /S\s*=\s*([-\d.]+)/i,
   ];
-  
+
   for (const pattern of sIndexPatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.sIndex = parseFloat(match[1]);
       break;
@@ -212,9 +266,9 @@ export function parseResponse(text: string): ParsedResponse {
     /(?:Скорость|Velocity|vS):\s*([-\d.]+)/i,
     /vS\s*=\s*([-\d.]+)/i,
   ];
-  
+
   for (const pattern of velocityPatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.velocity = parseFloat(match[1]);
       break;
@@ -225,9 +279,9 @@ export function parseResponse(text: string): ParsedResponse {
     /(?:Ускорение|Acceleration|aS):\s*([-\d.]+)/i,
     /aS\s*=\s*([-\d.]+)/i,
   ];
-  
+
   for (const pattern of accelPatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.acceleration = parseFloat(match[1]);
       break;
@@ -263,7 +317,7 @@ export function parseResponse(text: string): ParsedResponse {
 
   for (const [key, patterns] of Object.entries(indexPatterns)) {
     for (const pattern of patterns) {
-      const match = text.match(pattern);
+      const match = contentToAnalyze.match(pattern);
       if (match) {
         indices[key] = parseFloat(match[1]);
         hasAnyIndex = true;
@@ -272,7 +326,6 @@ export function parseResponse(text: string): ParsedResponse {
     }
   }
 
-  // Only set indices if at least one was found
   if (hasAnyIndex) {
     result.indices = indices;
   }
@@ -282,9 +335,9 @@ export function parseResponse(text: string): ParsedResponse {
     /(?:Слабые сигналы|Weak signals):\s*([^\n]+(?:\n[-•]\s*[^\n]+)*)/i,
     /(?:Сигналы|Signals):\s*([^\n]+(?:\n[-•]\s*[^\n]+)*)/i,
   ];
-  
+
   for (const pattern of signalPatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.signals = match[1]
         .split(/\n/)
@@ -299,16 +352,14 @@ export function parseResponse(text: string): ParsedResponse {
     /(?:Риторическое давление|Rhetorical pressure):\s*([-\d.]+)/i,
     /(?:Давление|Pressure):\s*([-\d.]+)/i,
   ];
-  
+
   for (const pattern of rhPressurePatterns) {
-    const match = text.match(pattern);
+    const match = contentToAnalyze.match(pattern);
     if (match) {
       result.rhetoricalPressure = parseFloat(match[1]);
       break;
     }
   }
-
-  // Keep original values from n8n, no defaults
 
   // Determine type based on extracted data
   if (result.phase && result.indices) {
@@ -318,6 +369,22 @@ export function parseResponse(text: string): ParsedResponse {
   }
 
   return result;
+}
+
+/**
+ * Extract numeric value from string that may contain description
+ * e.g., "0.215 — description" -> 0.215
+ */
+function extractNumericValue(str: string | number): number | null {
+  if (typeof str === 'number') return str;
+  if (typeof str !== 'string') return null;
+
+  const match = str.match(/([-\d.]+)/);
+  if (match) {
+    const val = parseFloat(match[1]);
+    return isNaN(val) ? null : val;
+  }
+  return null;
 }
 
 /**
@@ -340,18 +407,18 @@ export function hasStructuredData(parsed: ParsedResponse): boolean {
  */
 export function extractNumericData(text: string): Record<string, number> {
   const result: Record<string, number> = {};
-  
+
   // Match patterns like "Label: 123.45" or "Label = 123.45"
   const matches = Array.from(text.matchAll(/([А-ЯЁа-яёA-Za-z\s]+)[:=]\s*([-\d.]+)/g));
-  
+
   for (const match of matches) {
     const label = match[1].trim();
     const value = parseFloat(match[2]);
-    
+
     if (!isNaN(value) && label.length > 0) {
       result[label] = value;
     }
   }
-  
+
   return result;
 }
