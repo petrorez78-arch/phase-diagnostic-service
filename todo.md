@@ -113,3 +113,8 @@
 
 ## Bug Fix (User Reported)
 - [x] Fix parser to use real n8n data instead of always defaulting to 0.5 for indices
+
+## Enhancement (User Requested)
+- [x] Add JSON response parsing to properly display structured data from n8n
+- [x] Extract data from JSON fields (Компания, Фаза, Слабые сигналы, etc.)
+- [x] Map JSON structure to visualization components

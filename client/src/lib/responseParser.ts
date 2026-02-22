@@ -28,6 +28,111 @@ export function parseResponse(text: string): ParsedResponse {
     rawText: text,
   };
 
+  // Try to parse as JSON first (n8n may return structured JSON)
+  let jsonData: any = null;
+  try {
+    jsonData = JSON.parse(text);
+  } catch {
+    // Not JSON, continue with text parsing
+  }
+
+  // If we have JSON data, extract structured fields
+  if (jsonData && typeof jsonData === 'object') {
+    // Extract company and ticker
+    if (jsonData.Компания || jsonData.Company) {
+      result.company = jsonData.Компания || jsonData.Company;
+    }
+    if (jsonData.Тикер || jsonData.Ticker) {
+      result.ticker = jsonData.Тикер || jsonData.Ticker;
+    }
+
+    // Extract phase
+    if (jsonData.Фаза || jsonData.Phase) {
+      result.phase = jsonData.Фаза || jsonData.Phase;
+    }
+
+    // Extract indices if present
+    const indices: any = {};
+    let hasAnyJsonIndex = false;
+
+    // Check for direct index fields
+    if (jsonData.IFund !== undefined || jsonData.iFund !== undefined) {
+      indices.iFund = parseFloat(jsonData.IFund || jsonData.iFund);
+      hasAnyJsonIndex = true;
+    }
+    if (jsonData.IMarketGap !== undefined || jsonData.iMarketGap !== undefined) {
+      indices.iMarketGap = parseFloat(jsonData.IMarketGap || jsonData.iMarketGap);
+      hasAnyJsonIndex = true;
+    }
+    if (jsonData.IStruct !== undefined || jsonData.iStruct !== undefined) {
+      indices.iStruct = parseFloat(jsonData.IStruct || jsonData.iStruct);
+      hasAnyJsonIndex = true;
+    }
+    if (jsonData.IVola !== undefined || jsonData.iVola !== undefined) {
+      indices.iVola = parseFloat(jsonData.IVola || jsonData.iVola);
+      hasAnyJsonIndex = true;
+    }
+
+    // Check for nested Индексы object
+    const indicesObj = jsonData.Индексы || jsonData.Indices || jsonData.indices;
+    if (indicesObj && typeof indicesObj === 'object') {
+      if (indicesObj.IFund !== undefined) {
+        indices.iFund = parseFloat(indicesObj.IFund);
+        hasAnyJsonIndex = true;
+      }
+      if (indicesObj.IMarketGap !== undefined) {
+        indices.iMarketGap = parseFloat(indicesObj.IMarketGap);
+        hasAnyJsonIndex = true;
+      }
+      if (indicesObj.IStruct !== undefined) {
+        indices.iStruct = parseFloat(indicesObj.IStruct);
+        hasAnyJsonIndex = true;
+      }
+      if (indicesObj.IVola !== undefined) {
+        indices.iVola = parseFloat(indicesObj.IVola);
+        hasAnyJsonIndex = true;
+      }
+    }
+
+    if (hasAnyJsonIndex) {
+      result.indices = indices;
+    }
+
+    // Extract S-index, velocity, acceleration
+    if (jsonData.S !== undefined) {
+      result.sIndex = parseFloat(jsonData.S);
+    }
+    if (jsonData.vS !== undefined) {
+      result.velocity = parseFloat(jsonData.vS);
+    }
+    if (jsonData.aS !== undefined) {
+      result.acceleration = parseFloat(jsonData.aS);
+    }
+
+    // Extract weak signals
+    const signalsField = jsonData['Слабые сигналы'] || jsonData['Weak signals'] || jsonData.signals;
+    if (Array.isArray(signalsField)) {
+      result.signals = signalsField.map(s => String(s));
+    } else if (typeof signalsField === 'string') {
+      result.signals = [signalsField];
+    }
+
+    // Extract rhetorical pressure
+    if (jsonData['Риторическое давление'] !== undefined) {
+      result.rhetoricalPressure = parseFloat(jsonData['Риторическое давление']);
+    }
+
+    // If we found structured data, mark as analysis
+    if (result.phase && (result.indices || hasAnyJsonIndex)) {
+      result.type = 'analysis';
+    }
+
+    // Return early if we successfully parsed JSON
+    if (result.company || result.phase || hasAnyJsonIndex) {
+      return result;
+    }
+  }
+
   // Extract images (URLs ending with image extensions or markdown images)
   const imageUrls: string[] = [];
   
