@@ -118,3 +118,14 @@
 - [x] Add JSON response parsing to properly display structured data from n8n
 - [x] Extract data from JSON fields (Компания, Фаза, Слабые сигналы, etc.)
 - [x] Map JSON structure to visualization components
+
+## Standalone Mode (Remove Manus Dependencies)
+- [x] Update webhook URL to production
+- [x] Implement local email/password authentication (register/login endpoints)
+- [x] Create Login page with email/password form
+- [x] Update context.ts to support local auth tokens
+- [x] Add local auth routes to server
+- [ ] Remove Manus OAuth integration (optional - can coexist)
+- [ ] Remove Manus API calls (LLM, storage, notifications)
+- [ ] Update environment variables to remove Manus secrets
+- [ ] Create standalone deployment guide

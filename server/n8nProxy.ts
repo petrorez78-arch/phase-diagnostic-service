@@ -3,7 +3,7 @@
  * Forwards requests to n8n workflow and handles responses
  */
 
-const N8N_WEBHOOK_URL = "https://n8ntestplace.ru/webhook-test/064742d3-f4c6-47d1-9d5f-9287ada12460";
+const N8N_WEBHOOK_URL = "https://n8ntestplace.ru/webhook/064742d3-f4c6-47d1-9d5f-9287ada12460";
 
 export interface N8NRequest {
   message: string;

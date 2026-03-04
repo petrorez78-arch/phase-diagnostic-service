@@ -11,7 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
+
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -47,9 +47,7 @@ export default function Home() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  window.location.href = getLoginUrl();
-                }}
+                onClick={() => setLocation("/login")}
               >
                 Войти
               </Button>
