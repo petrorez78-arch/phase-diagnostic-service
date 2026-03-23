@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import path from "path";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -9,6 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import n8nRouter from "../n8nWebhook";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,6 +41,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Local authentication routes
   registerLocalAuthRoutes(app);
+  app.use("/uploads", express.static(path.resolve(process.cwd(), ENV.storageDir)));
   // n8n webhook routes
   app.use("/api/n8n", n8nRouter);
   // tRPC API

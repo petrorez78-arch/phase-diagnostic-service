@@ -28,13 +28,14 @@ const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
 
+export const isOAuthConfigured = () =>
+  Boolean(ENV.oAuthServerUrl && ENV.appId && ENV.cookieSecret);
+
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
     console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
-      console.error(
-        "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
-      );
+    if (!isOAuthConfigured()) {
+      console.warn("[OAuth] Disabled: missing OAUTH_SERVER_URL, VITE_APP_ID or JWT_SECRET");
     }
   }
 
@@ -47,6 +48,9 @@ class OAuthService {
     code: string,
     state: string
   ): Promise<ExchangeTokenResponse> {
+    if (!isOAuthConfigured()) {
+      throw new Error("OAuth is not configured on this server");
+    }
     const payload: ExchangeTokenRequest = {
       clientId: ENV.appId,
       grantType: "authorization_code",
@@ -65,6 +69,9 @@ class OAuthService {
   async getUserInfoByToken(
     token: ExchangeTokenResponse
   ): Promise<GetUserInfoResponse> {
+    if (!isOAuthConfigured()) {
+      throw new Error("OAuth is not configured on this server");
+    }
     const { data } = await this.client.post<GetUserInfoResponse>(
       GET_USER_INFO_PATH,
       {
@@ -235,6 +242,9 @@ class SDKServer {
   async getUserInfoWithJwt(
     jwtToken: string
   ): Promise<GetUserInfoWithJwtResponse> {
+    if (!isOAuthConfigured()) {
+      throw new Error("OAuth is not configured on this server");
+    }
     const payload: GetUserInfoWithJwtRequest = {
       jwtToken,
       projectId: ENV.appId,
@@ -257,6 +267,9 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
+    if (!isOAuthConfigured()) {
+      throw ForbiddenError("OAuth is disabled on this server");
+    }
     // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
