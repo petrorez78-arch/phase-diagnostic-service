@@ -3,7 +3,7 @@ import type { User } from "../../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
 import * as localAuth from "../localAuth";
 import * as db from "../db";
-import { sdk } from "./sdk";
+import { isOAuthConfigured, sdk } from "./sdk";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -26,8 +26,8 @@ export async function createContext(
       }
     }
 
-    // Fall back to Manus OAuth if local auth fails
-    if (!user) {
+    // Fall back to OAuth only when explicitly configured
+    if (!user && isOAuthConfigured()) {
       user = await sdk.authenticateRequest(opts.req);
     }
   } catch (error) {
